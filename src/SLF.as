@@ -20,8 +20,15 @@ package
 	{
 		public function SLF()
 		{
-			
-			
+			// Create GameInput as early as possible (the [Frame] preloader that normally
+			// does this does not run in the AIR/mxmlc build). On OUYA firmware, GameInput's
+			// DEVICE_ADDED only fires for a pad that connects AFTER GameInput exists, so it
+			// must be created before the controller finishes enumerating — hence here, at
+			// the very entry point, not later in a game state. stage is null this early,
+			// which is fine: initialize() only needs it for (optional) stage listeners.
+			ControllerInput.initialize(null);
+
+
 			//WINNITRON
 			//super(512, 384, WinniMenuState, 2, 60, 30);
 			//Registry.isPCVersion = false;
@@ -56,7 +63,8 @@ package
 			
 			
 			
-			Registry.DEMO = true;
+			// IAP removed for OUYA build: ship the full game unlocked (no in-app purchase)
+			Registry.DEMO = false;
 			
 			
 			//forceDebugger = false;

@@ -4,14 +4,14 @@ package io.arkeus.ouya {
 	import flash.events.GameInputEvent;
 	import flash.events.KeyboardEvent;
 	import flash.ui.GameInput;
+	import flash.ui.GameInputControl;
 	import flash.ui.GameInputDevice;
 	import flash.ui.Keyboard;
-	import flash.utils.getTimer;
-	
+
 	import io.arkeus.ouya.controller.GameController;
 	import io.arkeus.ouya.controller.OuyaController;
 	import io.arkeus.ouya.controller.Xbox360Controller;
-	
+
 	import org.flixel.FlxG;
 
 	/**
@@ -27,30 +27,50 @@ package io.arkeus.ouya {
 		public static var now:Number = 0;
 		public static var previous:Number = now;
 
+		/** True once GameInput has been created. Guards against double initialization. */
+		public static var didInit:Boolean = false;
+
 		/**
-		 * Initializes the library, adding event listeners as needed. The passed stage is used to add event
-		 * listeners for entering frame and for keyboard events.
-		 * 
-		 * @param stage A reference to the root flash stage.
+		 * Initializes the library, creating the GameInput object and adding event listeners.
+		 *
+		 * On OUYA firmware, GameInput's DEVICE_ADDED event only fires for a pad that connects
+		 * AFTER GameInput exists, so this MUST run as early as possible (called from the SLF
+		 * constructor) — before the controller finishes enumerating — otherwise the already
+		 * connected pad is never reported and no controller is ever attached. It is idempotent.
+		 *
+		 * @param stage The root stage, or null if not yet available (only used for the optional
+		 *              enter-frame / key listeners; GameInput itself does not need it).
 		 */
 		public static function initialize(stage:DisplayObject):void {
-			FlxG.log("initialize ControllerInput");
-			
+			if (didInit) {
+				return;
+			}
+
+			// Safe non-null placeholder so per-frame FlxG.ouyaController.*.reset()/.pressed
+			// never dereferences null before a real pad is attached (white-screen guard).
+			if (FlxG.ouyaController == null) {
+				FlxG.ouyaController = new OuyaController(null);
+			}
+
 			gameInput = new GameInput;
 			gameInput.addEventListener(GameInputEvent.DEVICE_ADDED, onDeviceAttached);
 			gameInput.addEventListener(GameInputEvent.DEVICE_REMOVED, onDeviceDetached);
 
-			stage.addEventListener(Event.ENTER_FRAME, onEnterFrame);
-			stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+			if (stage != null) {
+				stage.addEventListener(Event.ENTER_FRAME, onEnterFrame);
+				stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+			}
 
 			for (var i:uint = 0; i < GameInput.numDevices; i++) {
 				attach(GameInput.getDeviceAt(i));
 			}
+
+			didInit = true;
 		}
 
 		/**
 		 * Returns the active controller with the passed index.
-		 * 
+		 *
 		 * @param index The index of the controller to grab.
 		 * @return An active controller.
 		 */
@@ -60,7 +80,7 @@ package io.arkeus.ouya {
 
 		/**
 		 * Returns whether or not there is a controller that is ready to be polled for input.
-		 * 
+		 *
 		 * @return Whether there is a ready controller or not.
 		 */
 		public static function hasReadyController():Boolean {
@@ -70,7 +90,7 @@ package io.arkeus.ouya {
 		/**
 		 * Returns a ready controller and activates it (allowing it to be polled for input). This moves the
 		 * controller from the "ready controllers" queue to the list of active "controllers".
-		 * 
+		 *
 		 * @return The controller, now in a ready state.
 		 */
 		public static function getReadyController():GameController {
@@ -85,7 +105,7 @@ package io.arkeus.ouya {
 		 * queue in order to handle this case gracefully. Also, you can check if the "removed" property of the
 		 * controller is true, which also signifies that the controller has been detached from the system and can
 		 * no longer be read for input.
-		 * 
+		 *
 		 * @return Whether or not there is a detached controller.
 		 */
 		public static function hasRemovedController():Boolean {
@@ -95,7 +115,7 @@ package io.arkeus.ouya {
 		/**
 		 * Similar to reading a newly ready controller, this allows you to read a removed controller and handle it
 		 * however you'd like.
-		 * 
+		 *
 		 * @return The removed controller.
 		 */
 		public static function getRemovedController():GameController {
@@ -106,7 +126,7 @@ package io.arkeus.ouya {
 
 		/**
 		 * Callback when a device is attached.
-		 * 
+		 *
 		 * @param event The GameInputEvent containing the attached deviced.
 		 */
 		private static function onDeviceAttached(event:GameInputEvent):void {
@@ -131,7 +151,7 @@ package io.arkeus.ouya {
 
 		/**
 		 * Callback when a device is detached.
-		 * 
+		 *
 		 * @param event The GameInputEvent containing the detached deviced.
 		 */
 		private static function onDeviceDetached(event:GameInputEvent):void {
@@ -157,7 +177,7 @@ package io.arkeus.ouya {
 		/**
 		 * Helper method that takes a group and a target device, removes the device from the group
 		 * and returns it. If the controller was not present in the group, returns null instead.
-		 * 
+		 *
 		 * @param source The group to remove the controller from.
 		 * @param target The game input device to remove and return.
 		 * @return The removed controller corresponding to the device, or null if it wasn't present.
@@ -181,19 +201,18 @@ package io.arkeus.ouya {
 
 		/**
 		 * Sets up timers on enter frame in order to keep track of whether a button is pressed or held.
-		 * 
+		 *
 		 * @param event The enter frame event.
 		 */
 		private static function onEnterFrame(event:Event):void {
 			previous = now;
 			now = FlxG.totalElapsed;
-			
 		}
 
 		/**
 		 * Given the name of a device, returns the supported class for that device. If the device isn't
 		 * supported by AS3 Controller Input, returns null.
-		 * 
+		 *
 		 * @param name The name of the device.
 		 * @return The controller class corresponding to the device name.
 		 */
@@ -210,7 +229,7 @@ package io.arkeus.ouya {
 		/**
 		 * Callback for keyboard events that catches the back and escape keys such that stupid bindings
 		 * don't exit the application.
-		 * 
+		 *
 		 * @param event The keyboard event.
 		 */
 		private static function onKeyDown(event:KeyboardEvent):void {

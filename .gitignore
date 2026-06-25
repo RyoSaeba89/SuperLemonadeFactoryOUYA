@@ -1,2 +1,14 @@
 AIROUYAIAP-master
 /dist
+
+# Our OUYA signing keys — never commit
+/cert/slf-ouya.p12
+/cert/slf-ouya38.p12
+
+# Build artifacts / logs / scratch from the porting work
+/bin/SLFforOuya.swf
+*.log
+/_disabled_iap
+/store_fix
+/obj
+/superlemonadefactory-ouya

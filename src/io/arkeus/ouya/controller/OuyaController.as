@@ -47,9 +47,15 @@ package io.arkeus.ouya.controller {
 		 */
 		override protected function bindControls():void {
 			var controlMap:Object = {};
-			for (var i:uint = 0; i < device.numControls; i++) {
-				var control:GameInputControl = device.getControlAt(i);
-				controlMap[control.id] = control;
+			// device is null for the default/placeholder controller used before a real
+			// OUYA pad is detected (and after it sleeps/disconnects). Leaving controlMap
+			// empty binds every control to a null GameInputControl, which GameControl
+			// treats as a safe no-op, so FlxG.ouyaController is never null.
+			if (device != null) {
+				for (var i:uint = 0; i < device.numControls; i++) {
+					var control:GameInputControl = device.getControlAt(i);
+					controlMap[control.id] = control;
+				}
 			}
 
 			if (controlMap['BUTTON_100'] != null) {

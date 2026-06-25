@@ -363,10 +363,11 @@ package
 			latestText.color = 0x8000FF;
 			latestText.size = 8;
 			latestText.alignment = "right";
-			add(latestText);	*/		
-			
-			FlxG.ouyaController.o.reset();
-			
+			add(latestText);	*/
+
+			if (FlxG.ouyaController != null)
+				FlxG.ouyaController.o.reset();
+
 			buttonEmitter = new FlxEmitter(0,FlxG.height);
 			buttonEmitter.setSize(80,20);
 			buttonEmitter.setXSpeed(-15,15);
@@ -685,9 +686,16 @@ package
 		
 		private function buy():void
 		{
+			// OUYA fork: the game ships fully unlocked (Registry.DEMO = false) and the
+			// AIROUYAIAPANE native extension is NOT packaged. Never start the purchase
+			// flow — it would create a null ExtensionContext and crash. Just play.
+			if (!Registry.DEMO) {
+				this.beginFade();
+				return;
+			}
 			//FlxG.log("-------------BUYING-------------- buyTimer? : "  + buytimer);
 			//if (buytimer < 0.25) return;
-			
+
 			buytimer = 0;
 			  
 			var urlRequest:URLRequest = new URLRequest( "key.der" );        // Needs to be in your bin directory!

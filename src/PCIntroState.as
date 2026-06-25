@@ -70,8 +70,13 @@ package
 		override public function create():void
 		{
 			//FlxG.showDebugger();
-			
-			
+
+			// Fallback: make sure the controller library is initialized (it is normally
+			// created earlier, in the SLF constructor). Idempotent no-op if already done.
+			if (!ControllerInput.didInit) {
+				ControllerInput.initialize(FlxG.stage);
+			}
+
 			cheat = 0;
 			cheat2 = 0;
 			cheat3 = 0;
@@ -264,21 +269,22 @@ package
 			}
 			
 			super.update();
-			
+
 			if (worker.x < -225 || clicks>5) {
 
-				
+
 				FlxG.switchState(new PCMenuState());
 			}
 			frameDelta = frameCounter;
-			
+
 			if (FlxG.xboxController != null && controllerReady) {
 				//if (FlxG.xboxController.a.pressed) FlxG.xboxController.a.reset();
 				//if (FlxG.xboxController.y.pressed) FlxG.xboxController.y.reset();
 			}
 
-				
-			FlxG.ouyaController.o.reset();
+
+			if (FlxG.ouyaController != null)
+				FlxG.ouyaController.o.reset();
 				
 		}
 	}

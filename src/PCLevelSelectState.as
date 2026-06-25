@@ -189,7 +189,18 @@ package
 				_hcwhcap = save.data.hcwarehouseCap ;
 				_hcftrycap = save.data.hcfactoryCap ;
 				_hcmgmtcap = save.data.hcmgmtCap ;
-				
+
+				// OUYA fork: full game, every level accessible from launch (no progression
+				// gate). Force-unlock all level slots in the in-memory selection arrays.
+				// Index 0 is a label string, indices 1..12 are the per-level unlock flags.
+				var _ulArrays:Array = [_wh, _ftry, _mgmt, _hcwh, _hcftry, _hcmgmt];
+				for each (var _ulA:Array in _ulArrays) {
+					if (_ulA == null) continue;
+					for (var _uli:int = 1; _uli < _ulA.length; _uli++) {
+						_ulA[_uli] = "1";
+					}
+				}
+
 				if (Registry.DEMO) {
 					//close off levels 3-12
 					for (var i2:int = 3; i2 < 13; i2++) {

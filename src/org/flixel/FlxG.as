@@ -186,7 +186,11 @@ package org.flixel
 		 */
 		static public var usingJoystick:Boolean;		
 		
-		static public var ouyaController:OuyaController
+		// Default to a non-null placeholder OUYA controller (bound to no device) so the
+		// many unguarded FlxG.ouyaController.*.reset()/.pressed accesses across the game
+		// never throw a null-reference before a real pad is detected. ControllerInput
+		// replaces this with the real controller once one becomes ready.
+		static public var ouyaController:OuyaController = new OuyaController(null);
 		static public var xboxController:Xbox360Controller;
 		/**
 		 * A handy container for a background music object.

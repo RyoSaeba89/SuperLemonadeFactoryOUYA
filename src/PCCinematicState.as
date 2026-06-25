@@ -997,9 +997,10 @@ package
 			
 			
 			super.update();
-			
-			FlxG.ouyaController.o.reset();
-			
+
+			if (FlxG.ouyaController != null)
+				FlxG.ouyaController.o.reset();
+
 
 		}
 		public function pause():void 

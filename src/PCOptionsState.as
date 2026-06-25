@@ -298,9 +298,10 @@ package
 			
 			super.update();
 			
-			if (FlxG.ouyaController.a.pressed) onQuit();
-			
-			FlxG.ouyaController.o.reset();
+			if (FlxG.ouyaController != null) {
+				if (FlxG.ouyaController.a.pressed) onQuit();
+				FlxG.ouyaController.o.reset();
+			}
 			
 
 		}
