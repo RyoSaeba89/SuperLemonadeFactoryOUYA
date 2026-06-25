@@ -2,7 +2,7 @@ package
 {
 	import org.flixel.*;
 	import Math;
-	
+
 
 	public class Character extends FlxSprite
 	{

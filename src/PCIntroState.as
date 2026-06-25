@@ -71,11 +71,11 @@ package
 		{
 			//FlxG.showDebugger();
 
-			// Fallback: make sure the controller library is initialized (it is normally
-			// created earlier, in the SLF constructor). Idempotent no-op if already done.
-			if (!ControllerInput.didInit) {
-				ControllerInput.initialize(FlxG.stage);
-			}
+			// GameInput is created early (in the SLF constructor, stage still null). Call
+			// again here with a valid stage so the per-frame ENTER_FRAME listener attaches:
+			// it drives ControllerInput.now/previous, which button edge detection
+			// (pressed/released) relies on. Idempotent.
+			ControllerInput.initialize(FlxG.stage);
 
 			cheat = 0;
 			cheat2 = 0;

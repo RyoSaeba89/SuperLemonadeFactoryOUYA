@@ -29,43 +29,50 @@ package io.arkeus.ouya {
 
 		/** True once GameInput has been created. Guards against double initialization. */
 		public static var didInit:Boolean = false;
+		/** True once the per-frame ENTER_FRAME / KEY_DOWN listeners are attached to a stage. */
+		private static var stageHooked:Boolean = false;
 
 		/**
-		 * Initializes the library, creating the GameInput object and adding event listeners.
+		 * Initializes the library. Two independent, idempotent steps:
 		 *
-		 * On OUYA firmware, GameInput's DEVICE_ADDED event only fires for a pad that connects
-		 * AFTER GameInput exists, so this MUST run as early as possible (called from the SLF
-		 * constructor) — before the controller finishes enumerating — otherwise the already
-		 * connected pad is never reported and no controller is ever attached. It is idempotent.
+		 *  1. Create the GameInput object + device listeners. This MUST happen as early as
+		 *     possible (called from the SLF constructor, stage still null) because on OUYA
+		 *     firmware GameInput's DEVICE_ADDED only fires for a pad that connects AFTER
+		 *     GameInput exists — a pad already on at launch is never reported if GameInput is
+		 *     created late.
+		 *  2. Attach the ENTER_FRAME / KEY_DOWN listeners to the stage. This needs a valid
+		 *     stage and drives ControllerInput.now/previous, which the ButtonControl edge
+		 *     detection (pressed/released) depends on. Call again once a stage is available
+		 *     (from PCIntroState) to complete this step.
 		 *
-		 * @param stage The root stage, or null if not yet available (only used for the optional
-		 *              enter-frame / key listeners; GameInput itself does not need it).
+		 * Safe to call any number of times with or without a stage.
+		 *
+		 * @param stage The root stage, or null if not yet available.
 		 */
 		public static function initialize(stage:DisplayObject):void {
-			if (didInit) {
-				return;
+			if (!didInit) {
+				// Safe non-null placeholder so per-frame FlxG.ouyaController.*.reset()/.pressed
+				// never dereferences null before a real pad is attached (white-screen guard).
+				if (FlxG.ouyaController == null) {
+					FlxG.ouyaController = new OuyaController(null);
+				}
+
+				gameInput = new GameInput;
+				gameInput.addEventListener(GameInputEvent.DEVICE_ADDED, onDeviceAttached);
+				gameInput.addEventListener(GameInputEvent.DEVICE_REMOVED, onDeviceDetached);
+
+				for (var i:uint = 0; i < GameInput.numDevices; i++) {
+					attach(GameInput.getDeviceAt(i));
+				}
+
+				didInit = true;
 			}
 
-			// Safe non-null placeholder so per-frame FlxG.ouyaController.*.reset()/.pressed
-			// never dereferences null before a real pad is attached (white-screen guard).
-			if (FlxG.ouyaController == null) {
-				FlxG.ouyaController = new OuyaController(null);
-			}
-
-			gameInput = new GameInput;
-			gameInput.addEventListener(GameInputEvent.DEVICE_ADDED, onDeviceAttached);
-			gameInput.addEventListener(GameInputEvent.DEVICE_REMOVED, onDeviceDetached);
-
-			if (stage != null) {
+			if (stage != null && !stageHooked) {
 				stage.addEventListener(Event.ENTER_FRAME, onEnterFrame);
 				stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+				stageHooked = true;
 			}
-
-			for (var i:uint = 0; i < GameInput.numDevices; i++) {
-				attach(GameInput.getDeviceAt(i));
-			}
-
-			didInit = true;
 		}
 
 		/**
@@ -205,8 +212,8 @@ package io.arkeus.ouya {
 		 * @param event The enter frame event.
 		 */
 		private static function onEnterFrame(event:Event):void {
-			previous = now;
-			now = FlxG.totalElapsed;
+			// now/previous are advanced once per game-logic frame in FlxG.updateInput(),
+			// not here at render rate (see comment there). Kept for the KEY_DOWN listener.
 		}
 
 		/**

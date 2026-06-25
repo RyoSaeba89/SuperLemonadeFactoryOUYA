@@ -1248,6 +1248,14 @@ package org.flixel
 		 */
 		static internal function updateInput():void
 		{
+			// Advance the controller's edge-detection clock once per GAME-LOGIC frame
+			// (not per render frame). On a slow OUYA the render rate drops well below the
+			// logic rate, and driving now/previous from stage ENTER_FRAME made button
+			// "pressed" linger many logic frames — which auto-triggered the air double jump
+			// from a held first press. Tying it to the logic frame keeps pressed a 1-frame edge.
+			ControllerInput.previous = ControllerInput.now;
+			ControllerInput.now = FlxG.totalElapsed;
+
 			FlxG.keys.update();
 			
 			if (FlxG.usingJoystick)

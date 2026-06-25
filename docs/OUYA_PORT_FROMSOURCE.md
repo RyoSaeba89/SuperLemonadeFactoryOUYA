@@ -83,12 +83,23 @@ public function SLF() {
 }
 ```
 
-`ControllerInput.initialize()` is idempotent (guarded by `didInit`) and tolerates a `null`
-stage (the stage is only used for the optional enter-frame / key listeners). With `GameInput`
-alive this early, `DEVICE_ADDED` fires for the already-connected OUYA pad, the device
-materializes, and the existing `hasReadyController()` / `getReadyController()` logic in
-`PCIntroState` attaches it. `PCIntroState.create()` keeps a redundant, idempotent fallback
-call. Buttons mapping (`io.arkeus.ouya.controller.OuyaController`) is unchanged.
+`ControllerInput.initialize()` is idempotent and tolerates a `null` stage. It does two
+independent steps: (1) create `GameInput` + device listeners (must be early — from the `SLF`
+constructor); (2) attach the per-frame listeners, which needs a valid stage and is completed
+from `PCIntroState.create()`. With `GameInput` alive this early, `DEVICE_ADDED` fires for the
+already-connected OUYA pad and the existing `hasReadyController()` / `getReadyController()`
+logic attaches it. Button mapping (`io.arkeus.ouya.controller.OuyaController`) is unchanged.
+
+### 2b. Button "pressed" edge / air double jump
+
+`ButtonControl.pressed` is an edge detected against `ControllerInput.now`/`previous`, which
+the library advanced from the stage `ENTER_FRAME` (render rate). On a slow OUYA the render
+rate drops far below the 60 Hz game-logic rate, so `now`/`previous` lagged and `pressed`
+stayed `true` for many logic frames. That made a *held* first jump auto-trigger Liselot's air
+double jump (which gates on `o.pressed && jumpCounter == 1 && timeOffGround > 0.1`) instead of
+requiring a real second press. Fix: advance `now`/`previous` once per **game-logic** frame in
+`FlxG.updateInput()` (not from `ENTER_FRAME`), so `pressed` is a clean one-frame edge
+regardless of render fps. The `io.arkeus.ouya` control classes are otherwise unchanged.
 
 ## 3. In-app purchase and level locking
 
