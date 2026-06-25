@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <application xmlns="http://ns.adobe.com/air/application/3.8">
   <id>com.initialsgames.SLF</id>
-  <versionNumber>1.9.1</versionNumber>
+  <versionNumber>1.9.2</versionNumber>
   <supportedProfiles>mobileDevice</supportedProfiles>
   <filename>Super Lemonade Factory</filename>
   <name>Super Lemonade Factory</name>
